@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ярик Варит — Specialty Coffee</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- ── MOBILE OVERLAY ── -->
+<div class="mobile-overlay" id="mobileOverlay">
+  <button class="mob-close" onclick="closeMenu()" aria-label="Закрыть"></button>
+  <a href="#about" onclick="closeMenu()">О нас</a>
+  <a href="#menu" onclick="closeMenu()">Меню</a>
+  <a href="#delivery" onclick="closeMenu()">Доставка</a>
+  <a href="#footer" onclick="closeMenu()">Контакты</a>
+  <div class="mob-auth-area">
+    <button class="mob-auth-btn" id="mobAuthBtn" onclick="closeMenu();openAuth()">Войти</button>
+    <button class="mob-auth-btn" id="mobProfileBtn" style="display:none" onclick="closeMenu();openProfile()">Мой профиль</button>
+  </div>
+</div>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="nav-logo">Ярик<span>.</span>Варит</a>
+  <ul class="nav-links">
+    <li><a href="#about">О нас</a></li>
+    <li><a href="#menu">Меню</a></li>
+    <li><a href="#delivery">Доставка</a></li>
+    <li><a href="#footer">Контакты</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="btn-nav-auth" id="btnNavAuth" onclick="openAuth()">Войти</button>
+    <button class="btn-nav-profile" id="btnNavProfile" onclick="openProfile()">Профиль</button>
+    <button class="burger" id="burger" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── AUTH MODAL ── -->
+<div class="modal-backdrop" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()"></button>
+    <p class="modal-eyebrow">Добро пожаловать</p>
+    <h2 class="modal-title">Ярик<br><em>узнаёт своих</em></h2>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login',this)">Войти</button>
+      <button class="auth-tab" onclick="switchAuthTab('register',this)">Аккаунт</button>
+    </div>
+    <div id="tab-login">
+      <div class="auth-form">
+        <input type="email" placeholder="Email" id="loginEmail">
+        <input type="password" placeholder="Пароль" id="loginPass">
+        <button class="btn-auth-submit" onclick="doLogin()">Войти</button>
+      </div>
+      <div class="auth-divider"><span>или</span></div>
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Войти через Google
+      </button>
+    </div>
+    <div id="tab-register" style="display:none">
+      <div class="auth-form">
+        <input type="text" placeholder="Имя" id="regName">
+        <input type="email" placeholder="Email" id="regEmail">
+        <input type="password" placeholder="Пароль (мин. 6 символов)" id="regPass">
+        <button class="btn-auth-submit" onclick="doRegister()">Создать аккаунт</button>
+      </div>
+      <div class="auth-divider"><span>или</span></div>
+      <button class="btn-google" onclick="doGoogleLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Через Google
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PROFILE PANEL ── -->
+<div class="panel-overlay" id="panelOverlay" onclick="closeProfile()"></div>
+<div class="profile-panel" id="profilePanel">
+  <div class="panel-head">
+    <div class="panel-title">Мой профиль</div>
+    <button class="panel-close" onclick="closeProfile()"></button>
+  </div>
+  <div class="panel-body">
+    <div class="profile-avatar" id="profileAvatar">А</div>
+    <div class="profile-name" id="profileName">Алексей</div>
+    <div class="profile-email" id="profileEmail">alex@example.com</div>
+    <div class="bonus-card">
+      <div class="bonus-label">Бонусный счёт</div>
+      <div class="bonus-points">840</div>
+      <div class="bonus-sub">бонусных баллов · уровень <strong style="color:var(--gold)">Любитель</strong></div>
+      <div class="bonus-bar-wrap"><div class="bonus-bar" id="bonusBar"></div></div>
+      <div class="bonus-bar-note">До уровня «Мастер» — 160 баллов</div>
+    </div>
+    <div class="bonus-info">
+      <div class="bonus-info-title">Как работают бонусы</div>
+      <p>С каждой покупки начисляется <strong>процент от суммы</strong> в виде баллов. Чем выше уровень — тем больше кешбэк.</p>
+      <div class="bonus-info-uses">
+        <div class="bonus-use-row"><span class="bonus-use-icon">☕</span><span class="bonus-use-text"><strong style="color:var(--white-dim)">Оплата кофе</strong> — спишите баллы в счёт любого напитка. 1 балл = 1 ₽</span></div>
+        <div class="bonus-use-row"><span class="bonus-use-icon">✂</span><span class="bonus-use-text"><strong style="color:var(--white-dim)">Скидка на заказ</strong> — оплатите до 50% от суммы бонусами</span></div>
+        <div class="bonus-use-row"><span class="bonus-use-icon">🎁</span><span class="bonus-use-text"><strong style="color:var(--white-dim)">Выпечка в подарок</strong> — 300 баллов = любая выпечка бесплатно</span></div>
+      </div>
+    </div>
+    <div class="profile-section-label">Уровни и кешбэк</div>
+    <div class="levels">
+      <div class="level-row active">
+        <div class="level-left"><span class="level-icon">☕</span><div><div class="level-name">Любитель</div><div class="level-threshold">0 — 999 баллов</div></div></div>
+        <div style="text-align:right"><div class="level-cashback">5%</div><div style="font-size:8px;letter-spacing:.15em;color:var(--white-muted);text-transform:uppercase">кешбэк</div></div>
+      </div>
+      <div class="level-row">
+        <div class="level-left"><span class="level-icon">◈</span><div><div class="level-name">Мастер</div><div class="level-threshold">1000 — 2999 баллов</div></div></div>
+        <div style="text-align:right"><div class="level-cashback">8%</div><div style="font-size:8px;letter-spacing:.15em;color:var(--white-muted);text-transform:uppercase">кешбэк</div></div>
+      </div>
+      <div class="level-row">
+        <div class="level-left"><span class="level-icon">✦</span><div><div class="level-name">Сомелье</div><div class="level-threshold">от 3000 баллов</div></div></div>
+        <div style="text-align:right"><div class="level-cashback">12%</div><div style="font-size:8px;letter-spacing:.15em;color:var(--white-muted);text-transform:uppercase">кешбэк</div></div>
+      </div>
+    </div>
+    <div class="profile-section-label">История заказов</div>
+    <div class="history-item"><div><div class="history-name">Флэт Уайт + Круассан</div><div class="history-date">2 мар 2025</div></div><div class="history-pts">+18 б</div></div>
+    <div class="history-item"><div><div class="history-name">Капучино × 2</div><div class="history-date">28 фев 2025</div></div><div class="history-pts">+24 б</div></div>
+    <div class="history-item"><div><div class="history-name">Фильтр Ethiopia</div><div class="history-date">25 фев 2025</div></div><div class="history-pts">+12 б</div></div>
+    <div class="history-item"><div><div class="history-name">Колд Брю + Тост авокадо</div><div class="history-date">20 фев 2025</div></div><div class="history-pts">+28 б</div></div>
+    <button class="btn-logout" onclick="doLogout()">Выйти из аккаунта</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ HERO ══════════════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <div class="hero-logo-wrap">
+      <svg width="108" height="108" viewBox="0 0 108 108" fill="none">
+        <circle cx="54" cy="54" r="51" stroke="#c9a96e" stroke-width="0.6" stroke-dasharray="3.5 3.5" opacity="0.45"/>
+        <circle cx="54" cy="54" r="43" stroke="#c9a96e" stroke-width="0.35" opacity="0.2"/>
+        <path d="M33 47 Q31 68 38 74 L70 74 Q77 68 75 47 Z" fill="rgba(201,169,110,0.05)" stroke="#c9a96e" stroke-width="1.1"/>
+        <ellipse cx="54" cy="47" rx="21" ry="5.5" fill="rgba(201,169,110,0.06)" stroke="#c9a96e" stroke-width="0.9"/>
+        <ellipse cx="54" cy="51" rx="17" ry="3.5" fill="rgba(201,169,110,0.12)"/>
+        <path d="M75 55 Q86 55 86 63 Q86 71 75 71" fill="none" stroke="#c9a96e" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M28 76 Q54 82 80 76" stroke="#c9a96e" stroke-width="0.9" fill="none" stroke-linecap="round"/>
+        <path d="M43 40 Q40 34 43 28" stroke="#c9a96e" stroke-width="0.85" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0.6;0.15;0.6" dur="2.6s" repeatCount="indefinite"/></path>
+        <path d="M54 38 Q51 31 54 24" stroke="#c9a96e" stroke-width="0.85" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0.65;0.1;0.65" dur="2s" repeatCount="indefinite"/></path>
+        <path d="M65 40 Q62 34 65 28" stroke="#c9a96e" stroke-width="0.85" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0.6;0.15;0.6" dur="2.9s" repeatCount="indefinite"/></path>
+      </svg>
+    </div>
+    <p class="hero-eyebrow">Specialty Coffee · Москва</p>
+    <h1 class="hero-title">Ярик<em>Варит</em></h1>
+    <p class="hero-sub">Каждая чашка — это история</p>
+    <div class="hero-line"></div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap"><div class="ticker-track">
+  <span class="ticker-item">Specialty Coffee<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Авторские Напитки<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Свежая Обжарка<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Single Origin<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Доставка по городу<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Specialty Coffee<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Авторские Напитки<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Свежая Обжарка<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Single Origin<span class="ticker-dot">◆</span></span>
+  <span class="ticker-item">Доставка по городу<span class="ticker-dot">◆</span></span>
+</div></div>
+
+<!-- ══════════════════════ ABOUT ══════════════════════ -->
+<section class="about" id="about"><div class="section-inner">
+  <div class="about-grid">
+    <div class="about-text reveal">
+      <p class="section-label">О Нас</p>
+      <h2>Кофе — <em>это не просто</em> напиток</h2>
+      <div class="gold-divider"></div>
+      <p>Ярик Варит — это место, где каждая чашка создаётся с вниманием к деталям. Мы работаем только со specialty-зерном прямой поставки, выдерживаем правильную температуру и давление — чтобы вы почувствовали вкус в его лучшем виде.</p>
+    </div>
+    <div class="about-visual reveal">
+      <svg width="280" height="280" viewBox="0 0 280 280" fill="none">
+        <circle cx="140" cy="140" r="130" stroke="rgba(201,169,110,0.05)" stroke-width="1"/>
+        <ellipse cx="140" cy="204" rx="72" ry="10" fill="none" stroke="#c9a96e" stroke-width="1.1" opacity="0.5"/>
+        <path d="M90 138 Q84 186 100 200 L180 200 Q196 186 190 138 Z" fill="rgba(201,169,110,0.04)" stroke="#c9a96e" stroke-width="1.3"/>
+        <ellipse cx="140" cy="138" rx="50" ry="7.5" fill="rgba(201,169,110,0.05)" stroke="#c9a96e" stroke-width="1"/>
+        <ellipse cx="140" cy="143" rx="42" ry="5" fill="rgba(201,169,110,0.13)"/>
+        <path d="M190 152 Q212 152 212 166 Q212 180 190 180" fill="none" stroke="#c9a96e" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M116 126 Q110 112 116 98 Q122 84 116 70" stroke="#c9a96e" stroke-width="0.9" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="3s" repeatCount="indefinite"/></path>
+        <path d="M140 122 Q134 106 140 90 Q146 74 140 58" stroke="#c9a96e" stroke-width="0.9" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite"/></path>
+        <path d="M164 126 Q158 112 164 98 Q170 84 164 70" stroke="#c9a96e" stroke-width="0.9" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.8s" repeatCount="indefinite"/></path>
+      </svg>
+    </div>
+  </div>
+</div></section>
+
+<!-- ══════════════════════ MENU ══════════════════════ -->
+<section class="menu" id="menu"><div class="section-inner">
+  <div class="menu-header reveal">
+    <div>
+      <p class="section-label">Меню</p>
+      <h2 class="menu-title"><em>Меню</em></h2>
+    </div>
+    <div class="menu-cats">
+      <button class="cat-btn active" onclick="switchMenu('espresso',this)">☕ Эспрессо</button>
+      <button class="cat-btn" onclick="switchMenu('milk',this)">🥛 Молочные</button>
+      <button class="cat-btn" onclick="switchMenu('author',this)">✦ Авторские</button>
+      <button class="cat-btn" onclick="switchMenu('bakery',this)">🥐 Выпечка</button>
+    </div>
+  </div>
+  <div class="menu-panel active" id="panel-espresso">
+    <div class="menu-grid reveal">
+      <div class="menu-item"><p class="item-number">01</p><h3 class="item-name">Эспрессо</h3><p class="item-desc">Плотный, насыщенный. Бленд эфиопии и бразилии. Крема карамельного оттенка.</p><div class="item-price">180 ₽<span>/ 30 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">02</p><h3 class="item-name">Американо</h3><p class="item-desc">Эспрессо, раскрытый горячей водой. Чистый вкус без компромиссов.</p><div class="item-price">220 ₽<span>/ 180 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">03</p><h3 class="item-name">Флэт Уайт</h3><p class="item-desc">Двойной ристретто и бархатное молоко. Маленький, но мощный.</p><div class="item-price">280 ₽<span>/ 160 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">04</p><h3 class="item-name">Капучино</h3><p class="item-desc">Классика в идеальном исполнении. Пенка с рисунком — наша визитная карточка.</p><div class="item-price">290 ₽<span>/ 200 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">05</p><h3 class="item-name">Кортадо</h3><p class="item-desc">Равные части эспрессо и молока. Испанский характер в каждом глотке.</p><div class="item-price">260 ₽<span>/ 120 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">06</p><h3 class="item-name">Фильтр V60</h3><p class="item-desc">Single origin — Ethiopia Yirgacheffe. Яркий, с цветочными нотами.</p><div class="item-price">300 ₽<span>/ 250 мл</span></div></div>
+    </div>
+  </div>
+  <div class="menu-panel" id="panel-milk">
+    <div class="menu-grid reveal">
+      <div class="menu-item"><p class="item-number">07</p><h3 class="item-name">Латте</h3><p class="item-desc">Мягкий и обволакивающий. Эспрессо тонет в тёплой молочной глубине.</p><div class="item-price">310 ₽<span>/ 300 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">08</p><h3 class="item-name">Раф Классик</h3><p class="item-desc">Эспрессо, сливки и ваниль. Мягкий, как утренний туман.</p><div class="item-price">340 ₽<span>/ 250 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">09</p><h3 class="item-name">Матча Латте</h3><p class="item-desc">Японская матча церемониального класса с горячим молоком овса.</p><div class="item-price">360 ₽<span>/ 280 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">10</p><h3 class="item-name">Колд Брю</h3><p class="item-desc">12 часов холодного настаивания. Шоколад, цитрус, долгое послевкусие.</p><div class="item-price">350 ₽<span>/ 250 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">11</p><h3 class="item-name">Какао</h3><p class="item-desc">Бельгийский шоколад 70%, взбитое молоко, щепотка морской соли.</p><div class="item-price">320 ₽<span>/ 300 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">12</p><h3 class="item-name">Chai Latte</h3><p class="item-desc">Пряный масала с имбирём, кардамоном и корицей на молоке.</p><div class="item-price">300 ₽<span>/ 300 мл</span></div></div>
+    </div>
+  </div>
+  <div class="menu-panel" id="panel-author">
+    <div class="menu-grid reveal">
+      <div class="menu-item"><p class="item-number">13</p><h3 class="item-name">Дымный эспрессо</h3><p class="item-desc">Ристретто с щепоткой копчёной соли и карамелью ручной варки.</p><div class="item-price">390 ₽<span>/ 80 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">14</p><h3 class="item-name">Юзу Раф</h3><p class="item-desc">Сливки, цедра юзу и белый шоколад. Японская нежность в чашке.</p><div class="item-price">420 ₽<span>/ 250 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">15</p><h3 class="item-name">Лавандовый латте</h3><p class="item-desc">Прованский сироп, молоко, двойной шот. Каждый глоток — это сон.</p><div class="item-price">380 ₽<span>/ 280 мл</span></div></div>
+      <div class="menu-item"><p class="item-number">16</p><h3 class="item-name">Сезонный спешиал</h3><p class="item-desc">Меняется каждую неделю. Спросите бариста — он расскажет с удовольствием.</p><div class="item-price">от 380 ₽</div></div>
+    </div>
+  </div>
+  <div class="menu-panel" id="panel-bakery">
+    <div class="menu-grid reveal">
+      <div class="menu-item"><span class="bakery-tag">Хит</span><p class="item-number">Б-01</p><h3 class="item-name">Круассан масляный</h3><p class="item-desc">27 слоёв французского теста, 48 часов расстойки. Хрустящий, лёгкий, вечный.</p><div class="item-price">190 ₽</div></div>
+      <div class="menu-item"><span class="bakery-tag">Новинка</span><p class="item-number">Б-02</p><h3 class="item-name">Pain au chocolat</h3><p class="item-desc">Две полоски бельгийского тёмного шоколада в слоёном тесте. Просто идеально.</p><div class="item-price">220 ₽</div></div>
+      <div class="menu-item"><p class="item-number">Б-03</p><h3 class="item-name">Синнабон</h3><p class="item-desc">Мягкий рулет с корицей, покрытый кремом из рикотты и ванили.</p><div class="item-price">240 ₽</div></div>
+      <div class="menu-item"><p class="item-number">Б-04</p><h3 class="item-name">Тост с авокадо</h3><p class="item-desc">Соурдоу на закваске, спелый авокадо, флёр-де-сель, микрозелень, лимон.</p><div class="item-price">340 ₽</div></div>
+      <div class="menu-item"><span class="bakery-tag">Сезонный</span><p class="item-number">Б-05</p><h3 class="item-name">Тарт с ягодами</h3><p class="item-desc">Французский тарт с кремом патисьер и свежими сезонными ягодами.</p><div class="item-price">280 ₽</div></div>
+      <div class="menu-item"><p class="item-number">Б-06</p><h3 class="item-name">Эклер кофейный</h3><p class="item-desc">Заварное тесто, крем с эспрессо, глазурь из тёмного шоколада. Наш символ.</p><div class="item-price">260 ₽</div></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ══════════════════════ DELIVERY ══════════════════════ -->
+<section class="delivery" id="delivery"><div class="section-inner">
+  <div class="menu-header reveal">
+    <div>
+      <p class="section-label">Доставка</p>
+      <h2 class="menu-title">Привезём<br><em>куда скажешь</em></h2>
+    </div>
+  </div>
+  <div class="delivery-grid reveal">
+    <div class="delivery-card"><div class="delivery-icon">🛵</div><div class="delivery-name">Курьер</div><div class="delivery-desc">Горячий кофе и выпечка до вашей двери. В среднем 30–45 минут от момента заказа.</div><div class="delivery-price">199 ₽</div></div>
+    <div class="delivery-card"><div class="delivery-icon">⚡</div><div class="delivery-name">Экспресс</div><div class="delivery-desc">Доставка за 20 минут в радиусе 2 км от кофейни. Работает с открытия до 11:00.</div><div class="delivery-price">299 ₽</div></div>
+    <div class="delivery-card"><div class="delivery-icon">🎁</div><div class="delivery-name">Бесплатно</div><div class="delivery-desc">При заказе от 1200 ₽ — доставка бесплатна в любую точку в пределах МКАД.</div><div class="delivery-price">0 ₽</div></div>
+  </div>
+  <div class="delivery-zone reveal">
+    <div>
+      <h3>Зоны <em>доставки</em></h3>
+      <p>Доставляем в пределах МКАД. Время зависит от расстояния до кофейни на Покровке.</p>
+      <ul class="zone-list">
+        <li><span style="color:var(--white-muted)">До 2 км</span><span>20–25 мин</span></li>
+        <li><span style="color:var(--white-muted)">2–5 км</span><span>30–40 мин</span></li>
+        <li><span style="color:var(--white-muted)">5–10 км</span><span>45–60 мин</span></li>
+        <li><span style="color:var(--white-muted)">10–20 км</span><span>60–80 мин</span></li>
+      </ul>
+      <button class="btn-order">Заказать доставку</button>
+    </div>
+    <div>
+      <div class="section-label">Минимальный заказ</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;color:var(--gold);line-height:1;margin:10px 0 8px">600 ₽</div>
+      <div style="font-size:12px;color:var(--white-muted);letter-spacing:.08em;line-height:2.1">Принимаем с 08:00 до 20:30.<br>Оплата картой или наличными курьеру.<br>Упаковка держит температуру 40 мин.</div>
+    </div>
+  </div>
+</div></section>
+
+<!-- QUOTE -->
+<section class="signature"><div class="signature-inner reveal">
+  <p class="section-label" style="text-align:center;margin-bottom:36px;">Философия</p>
+  <blockquote class="signature-quote">«Хороший кофе — это не случайность.<br>Это <strong>мастерство</strong>, ритуал и точность.»</blockquote>
+  <p class="sig-author">— Ярик, основатель</p>
+</div></section>
+
+<!-- FOOTER -->
+<footer id="footer">
+  <div class="footer-brand">Ярик<span>.</span>Варит</div>
+  <div class="footer-info">
+    <p>Москва, ул. Покровка, 14</p>
+    <p>Пн–Вс: 08:00 — 22:00</p>
+    <p class="gold">@yarik.varit</p>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+</body>
+</html>
