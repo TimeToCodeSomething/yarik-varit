@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"yarik-varit/api/handlers"
@@ -8,12 +10,19 @@ import (
 
 func main() {
 	fmt.Println("Ярик Варит! Сервер запустился!")
-	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/menu", handlers.MenuHandler)
-
-	err := http.ListenAndServe(":8080", nil)
+	db, err := sql.Open("pgx", "postgres://kuimovmihail@localhost:5432/yarik_varit?sslmode=disable")
 	if err != nil {
-		fmt.Println("Ошибка запуска сервера:", err)
+    	log.Fatal("Ошибка подключения к БД:", err)
+	}
+
+	h := handlers.NewHandler(db)
+	http.HandleFunc("/", homeHandler)
+	http.HandleFunc("/menu", h.MenuHandler)
+	http.HandleFunc("/menu/", h.MenuItemHandler)
+
+	err = http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal("Ошибка запуска сервера:", err)
 	}
 }
 
