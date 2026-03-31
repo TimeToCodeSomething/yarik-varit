@@ -21,7 +21,7 @@ func NewHandler(db *sql.DB) *Handler { // Создаем конструктор 
 
 func (h *Handler) MenuHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet:	// GET
 		rows, err := h.db.Query("SELECT id, name, price, vol, category FROM menu")
 		if err != nil {
 			http.Error(w, "Ошибка выполнения запроса", http.StatusInternalServerError)
@@ -41,7 +41,7 @@ func (h *Handler) MenuHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		json.NewEncoder(w).Encode(items)
-	case http.MethodPost:
+	case http.MethodPost:	// POST
 		var item models.MenuItem
 		if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
 			http.Error(w, "Ошибка чтения запроса", http.StatusBadRequest)
@@ -61,30 +61,46 @@ func (h *Handler) MenuHandler(w http.ResponseWriter, r *http.Request) {
 
 	default:
 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		return
 	}
 }
 
 func (h *Handler) MenuItemHandler(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/menu/")
-	switch r.Method {
-	case http.MethodPut:
-		var item models.MenuItem
-		if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-			http.Error(w, "Ошибка изменения", http.StatusBadRequest)
-			return
-		}
-		idInt, err := strconv.Atoi(id)
+
+	idInt, err := strconv.Atoi(id)
 		if err != nil {
 			http.Error(w, "Неверный id", http.StatusBadRequest)
 			return
 		}
 
+	switch r.Method {
+	case http.MethodPut:	// PUT
+		var item models.MenuItem
+		if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+			http.Error(w, "Ошибка изменения", http.StatusBadRequest)
+			return
+		}
 		_, err = h.db.Exec(
 			"UPDATE menu SET name=$1, price=$2, vol=$3, category=$4 WHERE id=$5",
     		item.Name, item.Price, item.Vol, item.Category, idInt,
 		)
-	case http.MethodDelete:
-
+		if err != nil {
+			http.Error(w, "Ошибка обновления", http.StatusBadRequest)
+			return
+		}
+		item.ID = idInt
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		json.NewEncoder(w).Encode(item)
+	case http.MethodDelete:	// DELETE
+		_, err = h.db.Exec("DELETE FROM menu WHERE id=$1", idInt)
+		if err != nil {
+			http.Error(w, "Ошибка удаления", http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	default:
+		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+		return
 	}
 }
