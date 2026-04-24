@@ -16,10 +16,17 @@ func main() {
 	}
 
 	h := handlers.NewHandler(db)
-	http.HandleFunc("/", homeHandler)
-	http.HandleFunc("/menu", h.MenuHandler)
-	http.HandleFunc("/menu/", h.MenuItemHandler)
-	http.HandleFunc("/orders", h.OrderHandler)
+
+	http.HandleFunc("GET /", homeHandler)
+	http.HandleFunc("GET /menu", h.GetMenuItems)
+	http.HandleFunc("POST /menu", h.CreateMenuItem)
+	http.HandleFunc("PUT /menu/{id}", h.UpdateMenuItem)
+	http.HandleFunc("DELETE /menu/{id}", h.DeleteMenuItem)
+
+	http.HandleFunc("GET /orders", h.GetOrders)
+	http.HandleFunc("POST /orders", h.CreateOrder)
+	http.HandleFunc("GET /orders/{id}", h.GetOrderByID)
+	http.HandleFunc("PATCH /orders/{id}/status", h.UpdateOrderStatus)
 
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
