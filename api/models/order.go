@@ -18,6 +18,7 @@ type Order struct {
 	Time   time.Time   `json:"time"`
 	Status OrderStatus `json:"status"`
 	UserID *int        `json:"user_id,omitempty"`
+	Total  float64     `json:"total"`
 	Item   []OrderItem `json:"items,omitempty"`
 }
 

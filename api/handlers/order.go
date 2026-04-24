@@ -18,7 +18,7 @@ type OrderRequest struct {
 }
 
 func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.db.Query("SELECT id, tm, status FROM orders ORDER BY tm DESC")
+	rows, err := h.db.Query("SELECT id, tm, status, total FROM orders ORDER BY tm DESC")
 	if err != nil {
 		http.Error(w, "Ошибка выполнения запроса", http.StatusInternalServerError)
 		return
@@ -28,7 +28,7 @@ func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	var orders []models.Order
 	for rows.Next() {
 		var o models.Order
-		if err := rows.Scan(&o.ID, &o.Time, &o.Status); err != nil {
+		if err := rows.Scan(&o.ID, &o.Time, &o.Status, &o.Total); err != nil {
 			http.Error(w, "Ошибка чтения данных", http.StatusInternalServerError)
 			return
 		}
@@ -52,8 +52,8 @@ func (h *Handler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 
 	var order models.Order
 	err = h.db.QueryRow(
-		"SELECT id, tm, status FROM orders WHERE id = $1", idInt,
-	).Scan(&order.ID, &order.Time, &order.Status)
+		"SELECT id, tm, status, total FROM orders WHERE id = $1", idInt,
+	).Scan(&order.ID, &order.Time, &order.Status, &order.Total)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Заказ не найден", http.StatusNotFound)
 		return
@@ -63,7 +63,6 @@ func (h *Handler) GetOrderByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Подгружаем items
 	rows, err := h.db.Query(
 		"SELECT id, order_id, menu_id, quantity, price, name FROM order_items WHERE order_id = $1",
 		idInt,
@@ -120,18 +119,16 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	var order models.Order
-	err = tx.QueryRow(
-		"INSERT INTO orders (status) VALUES ($1) RETURNING id, tm",
-		models.StatusPending,
-	).Scan(&order.ID, &order.Time)
-	if err != nil {
-		http.Error(w, "Ошибка создания заказа", http.StatusInternalServerError)
-		return
-	}
-	order.Status = models.StatusPending
+	// Сначала считаем total и собираем данные
+	var total float64
+	itemsData := make([]struct {
+		MenuID   int
+		Quantity int
+		Price    float64
+		Name     string
+	}, len(req.Items))
 
-	for _, item := range req.Items {
+	for i, item := range req.Items {
 		var price float64
 		var name string
 		err := tx.QueryRow(
@@ -146,10 +143,32 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		itemsData[i].MenuID = item.MenuID
+		itemsData[i].Quantity = item.Quantity
+		itemsData[i].Price = price
+		itemsData[i].Name = name
+		total += price * float64(item.Quantity)
+	}
+
+	// Создаём заказ с total
+	var order models.Order
+	err = tx.QueryRow(
+		"INSERT INTO orders (status, total) VALUES ($1, $2) RETURNING id, tm",
+		models.StatusPending, total,
+	).Scan(&order.ID, &order.Time)
+	if err != nil {
+		http.Error(w, "Ошибка создания заказа", http.StatusInternalServerError)
+		return
+	}
+	order.Status = models.StatusPending
+	order.Total = total
+
+	// Добавляем items
+	for _, itemData := range itemsData {
 		var oi models.OrderItem
 		err = tx.QueryRow(
 			"INSERT INTO order_items (order_id, menu_id, quantity, price, name) VALUES ($1, $2, $3, $4, $5) RETURNING id, order_id, menu_id, quantity, price, name",
-			order.ID, item.MenuID, item.Quantity, price, name,
+			order.ID, itemData.MenuID, itemData.Quantity, itemData.Price, itemData.Name,
 		).Scan(&oi.ID, &oi.OrderID, &oi.MenuID, &oi.Quantity, &oi.Price, &oi.Name)
 		if err != nil {
 			http.Error(w, "Ошибка добавления позиции", http.StatusInternalServerError)
@@ -200,8 +219,14 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка обновления статуса", http.StatusInternalServerError)
 		return
 	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
+
+	// FIX: обрабатываем ошибку RowsAffected
+	affected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, "Ошибка проверки обновления", http.StatusInternalServerError)
+		return
+	}
+	if affected == 0 {
 		http.Error(w, "Заказ не найден", http.StatusNotFound)
 		return
 	}

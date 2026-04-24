@@ -18,8 +18,19 @@ func NewHandler(db *sql.DB) *Handler {
 	return &Handler{db: db}
 }
 
+// GetMenuItems возвращает все позиции меню, опционально с фильтром по категории
 func (h *Handler) GetMenuItems(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.db.Query("SELECT id, name, price, vol, category FROM menu")
+	category := r.URL.Query().Get("category")
+
+	var rows *sql.Rows
+	var err error
+
+	if category != "" {
+		rows, err = h.db.Query("SELECT id, name, price, vol, category FROM menu WHERE category = $1 ORDER BY id", category)
+	} else {
+		rows, err = h.db.Query("SELECT id, name, price, vol, category FROM menu ORDER BY category, id")
+	}
+
 	if err != nil {
 		http.Error(w, "Ошибка выполнения запроса", http.StatusInternalServerError)
 		return
@@ -44,6 +55,50 @@ func (h *Handler) GetMenuItems(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(items)
 }
 
+// GetMenuByCategories возвращает меню сгруппированное по категориям
+func (h *Handler) GetMenuByCategories(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.db.Query("SELECT id, name, price, vol, category FROM menu ORDER BY category, id")
+	if err != nil {
+		http.Error(w, "Ошибка выполнения запроса", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	// Группируем по категориям
+	menuByCategory := make(map[string][]models.MenuItem)
+	categories := []string{}
+	categorySet := make(map[string]bool)
+
+	for rows.Next() {
+		var item models.MenuItem
+		if err := rows.Scan(&item.ID, &item.Name, &item.Price, &item.Vol, &item.Category); err != nil {
+			http.Error(w, "Ошибка чтения данных", http.StatusInternalServerError)
+			return
+		}
+
+		if !categorySet[item.Category] {
+			categories = append(categories, item.Category)
+			categorySet[item.Category] = true
+		}
+
+		menuByCategory[item.Category] = append(menuByCategory[item.Category], item)
+	}
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Ошибка итерации", http.StatusInternalServerError)
+		return
+	}
+
+	// Возвращаем структурированный ответ
+	response := make(map[string][]models.MenuItem)
+	for _, cat := range categories {
+		response[cat] = menuByCategory[cat]
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	json.NewEncoder(w).Encode(response)
+}
+
+// CreateMenuItem добавляет новую позицию в меню
 func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	var item models.MenuItem
 	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
@@ -65,6 +120,7 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(item)
 }
 
+// UpdateMenuItem обновляет позицию меню
 func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	idInt, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
@@ -86,8 +142,13 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка обновления", http.StatusInternalServerError)
 		return
 	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, "Ошибка проверки обновления", http.StatusInternalServerError)
+		return
+	}
+	if affected == 0 {
 		http.Error(w, "Позиция не найдена", http.StatusNotFound)
 		return
 	}
@@ -97,6 +158,7 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(item)
 }
 
+// DeleteMenuItem удаляет позицию из меню
 func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
 	idInt, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
@@ -109,8 +171,13 @@ func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Ошибка удаления", http.StatusInternalServerError)
 		return
 	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, "Ошибка проверки удаления", http.StatusInternalServerError)
+		return
+	}
+	if affected == 0 {
 		http.Error(w, "Позиция не найдена", http.StatusNotFound)
 		return
 	}
