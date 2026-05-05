@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 	"yarik-varit/api/models"
 
@@ -11,8 +12,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// В идеале секрет должен браться из .env (os.Getenv("JWT_SECRET"))
-var jwtSecret = []byte("super-secret-yarik-key")
+func getJWTSecret() []byte {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		panic("Переменная JWT_SECRET не задана")
+	}
+	return []byte(secret)
+}
+
+var jwtSecret = getJWTSecret()
 
 type LoginRequest struct {
 	Username string `json:"username"`

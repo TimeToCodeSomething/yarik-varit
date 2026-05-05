@@ -4,15 +4,30 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"yarik-varit/api/handlers"
 	"yarik-varit/api/models"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Подключение к БД
-	db, err := sql.Open("pgx", "postgres://kuimovmihail:password@localhost:5432/yarik_varit")
+	if err := godotenv.Load(); err != nil {
+		log.Println("Файл .env не найден, используются переменные окружения")
+	}
+
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("Переменная DB_URL не задана")
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	db, err := sql.Open("pgx", dbURL)
 	if err != nil {
 		log.Fatal("Ошибка подключения к БД:", err)
 	}
@@ -52,8 +67,6 @@ func main() {
 	mux.HandleFunc("PATCH /orders/{id}/status", handlers.AuthMiddleware(staffRoles, h.UpdateOrderStatus))
 	mux.HandleFunc("DELETE /orders/{id}", handlers.AuthMiddleware(staffRoles, h.DeleteOrder))
 
-	log.Println("🚀 Сервер 'Ярик Варит' запущен на :8080")
-
-	// ВАЖНО: передаем созданный mux вместо nil
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Printf("🚀 Сервер 'Ярик Варит' запущен на :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux))
 }
