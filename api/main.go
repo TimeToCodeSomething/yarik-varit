@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"yarik-varit/api/handlers"
+	"yarik-varit/api/models"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -26,19 +27,33 @@ func main() {
 
 	h := handlers.NewHandler(db)
 
+	// Используем свой мультиплексор для маршрутов
+	mux := http.NewServeMux()
+
+	// Публичные эндпоинты
+	mux.HandleFunc("POST /login", h.Login)
+	mux.HandleFunc("GET /menu", h.GetMenuItems)
+	mux.HandleFunc("GET /menu/categories", h.GetMenuByCategories)
+
+	// Ограничение ролей для безопасности
+	adminOnly := []models.Role{models.RoleAdmin}
+	staffRoles := []models.Role{models.RoleAdmin, models.RoleBarista}
+	anyUser := []models.Role{models.RoleAdmin, models.RoleBarista, models.RoleClient}
+
 	// Menu endpoints
-	http.HandleFunc("GET /menu", h.GetMenuItems)
-	http.HandleFunc("GET /menu/categories", h.GetMenuByCategories)
-	http.HandleFunc("POST /menu", h.CreateMenuItem)
-	http.HandleFunc("PUT /menu/{id}", h.UpdateMenuItem)
-	http.HandleFunc("DELETE /menu/{id}", h.DeleteMenuItem)
+	mux.HandleFunc("POST /menu", handlers.AuthMiddleware(adminOnly, h.CreateMenuItem))
+	mux.HandleFunc("PUT /menu/{id}", handlers.AuthMiddleware(adminOnly, h.UpdateMenuItem))
+	mux.HandleFunc("DELETE /menu/{id}", handlers.AuthMiddleware(adminOnly, h.DeleteMenuItem))
 
 	// Orders endpoints
-	http.HandleFunc("GET /orders", h.GetOrders)
-	http.HandleFunc("GET /orders/{id}", h.GetOrderByID)
-	http.HandleFunc("POST /orders", h.CreateOrder)
-	http.HandleFunc("PATCH /orders/{id}/status", h.UpdateOrderStatus)
+	mux.HandleFunc("GET /orders", handlers.AuthMiddleware(staffRoles, h.GetOrders))
+	mux.HandleFunc("GET /orders/{id}", handlers.AuthMiddleware(anyUser, h.GetOrderByID))
+	mux.HandleFunc("POST /orders", handlers.AuthMiddleware(anyUser, h.CreateOrder))
+	mux.HandleFunc("PATCH /orders/{id}/status", handlers.AuthMiddleware(staffRoles, h.UpdateOrderStatus))
+	mux.HandleFunc("DELETE /orders/{id}", handlers.AuthMiddleware(staffRoles, h.DeleteOrder))
 
-	log.Println("🚀 Сервер запущен на :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("🚀 Сервер 'Ярик Варит' запущен на :8080")
+
+	// ВАЖНО: передаем созданный mux вместо nil
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }

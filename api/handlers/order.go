@@ -18,14 +18,28 @@ type OrderRequest struct {
 }
 
 func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.db.Query("SELECT id, tm, status, total FROM orders ORDER BY tm DESC")
+	// Читаем параметр ?status= из URL
+	status := r.URL.Query().Get("status")
+
+	var rows *sql.Rows
+	var err error
+
+	// Динамически меняем запрос в зависимости от наличия фильтра
+	if status != "" {
+		rows, err = h.db.Query("SELECT id, tm, status, total FROM orders WHERE status = $1 ORDER BY tm DESC", status)
+	} else {
+		rows, err = h.db.Query("SELECT id, tm, status, total FROM orders ORDER BY tm DESC")
+	}
+
 	if err != nil {
 		http.Error(w, "Ошибка выполнения запроса", http.StatusInternalServerError)
 		return
 	}
 	defer rows.Close()
 
-	var orders []models.Order
+	// Инициализируем пустой слайс
+	orders := []models.Order{}
+
 	for rows.Next() {
 		var o models.Order
 		if err := rows.Scan(&o.ID, &o.Time, &o.Status, &o.Total); err != nil {
@@ -34,6 +48,7 @@ func (h *Handler) GetOrders(w http.ResponseWriter, r *http.Request) {
 		}
 		orders = append(orders, o)
 	}
+
 	if err := rows.Err(); err != nil {
 		http.Error(w, "Ошибка итерации", http.StatusInternalServerError)
 		return
@@ -224,6 +239,34 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	affected, err := result.RowsAffected()
 	if err != nil {
 		http.Error(w, "Ошибка проверки обновления", http.StatusInternalServerError)
+		return
+	}
+	if affected == 0 {
+		http.Error(w, "Заказ не найден", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
+	idInt, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "Неверный id", http.StatusBadRequest)
+		return
+	}
+
+	// В базе данные связаны через внешний ключ, поэтому лучше удалять в транзакции
+	// или убедиться, что в БД настроено ON DELETE CASCADE.
+	result, err := h.db.Exec("DELETE FROM orders WHERE id = $1", idInt)
+	if err != nil {
+		http.Error(w, "Ошибка удаления заказа", http.StatusInternalServerError)
+		return
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		http.Error(w, "Ошибка проверки", http.StatusInternalServerError)
 		return
 	}
 	if affected == 0 {
