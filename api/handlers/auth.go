@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 	"yarik-varit/api/models"
 
@@ -23,6 +24,57 @@ func jwtSecret() []byte {
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type RegisterRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	var req RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Ошибка чтения запроса", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Username) < 3 {
+		http.Error(w, "Логин должен быть не короче 3 символов", http.StatusBadRequest)
+		return
+	}
+	if len(req.Password) < 6 {
+		http.Error(w, "Пароль должен быть не короче 6 символов", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Ошибка хэширования пароля", http.StatusInternalServerError)
+		return
+	}
+
+	var user models.User
+	err = h.db.QueryRow(
+		"INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3) RETURNING id, username, role",
+		req.Username, string(hash), models.RoleClient,
+	).Scan(&user.ID, &user.Username, &user.Role)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "unique") {
+			http.Error(w, "Логин уже занят", http.StatusConflict)
+			return
+		}
+		http.Error(w, "Ошибка создания пользователя", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":       user.ID,
+		"username": user.Username,
+		"role":     user.Role,
+	})
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {

@@ -6,11 +6,23 @@ import (
 	"net/http"
 	"os"
 	"yarik-varit/api/handlers"
-	"yarik-varit/api/models"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 )
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	if err := godotenv.Load(); err != nil {
@@ -40,33 +52,8 @@ func main() {
 
 	log.Println("✅ Подключение к БД успешно")
 
-	h := handlers.NewHandler(db)
-
-	// Используем свой мультиплексор для маршрутов
-	mux := http.NewServeMux()
-
-	// Публичные эндпоинты
-	mux.HandleFunc("POST /login", h.Login)
-	mux.HandleFunc("GET /menu", h.GetMenuItems)
-	mux.HandleFunc("GET /menu/categories", h.GetMenuByCategories)
-
-	// Ограничение ролей для безопасности
-	adminOnly := []models.Role{models.RoleAdmin}
-	staffRoles := []models.Role{models.RoleAdmin, models.RoleBarista}
-	anyUser := []models.Role{models.RoleAdmin, models.RoleBarista, models.RoleClient}
-
-	// Menu endpoints
-	mux.HandleFunc("POST /menu", handlers.AuthMiddleware(adminOnly, h.CreateMenuItem))
-	mux.HandleFunc("PUT /menu/{id}", handlers.AuthMiddleware(adminOnly, h.UpdateMenuItem))
-	mux.HandleFunc("DELETE /menu/{id}", handlers.AuthMiddleware(adminOnly, h.DeleteMenuItem))
-
-	// Orders endpoints
-	mux.HandleFunc("GET /orders", handlers.AuthMiddleware(staffRoles, h.GetOrders))
-	mux.HandleFunc("GET /orders/{id}", handlers.AuthMiddleware(anyUser, h.GetOrderByID))
-	mux.HandleFunc("POST /orders", handlers.AuthMiddleware(anyUser, h.CreateOrder))
-	mux.HandleFunc("PATCH /orders/{id}/status", handlers.AuthMiddleware(staffRoles, h.UpdateOrderStatus))
-	mux.HandleFunc("DELETE /orders/{id}", handlers.AuthMiddleware(staffRoles, h.DeleteOrder))
+	mux := handlers.NewRouter(db)
 
 	log.Printf("🚀 Сервер 'Ярик Варит' запущен на :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(mux)))
 }

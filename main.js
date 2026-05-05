@@ -2,7 +2,52 @@
    ЯРИК ВАРИТ — main.js
    ═══════════════════════════════════════════ */
 
+const API_URL = 'http://localhost:8080';
+
 let currentUser = null;
+
+/* ── MENU FROM API ── */
+async function loadMenu() {
+  try {
+    const res = await fetch(`${API_URL}/menu`);
+    if (!res.ok) throw new Error('Ошибка загрузки меню');
+    const items = await res.json();
+
+    // Группируем по категориям
+    const byCategory = {};
+    items.forEach(item => {
+      if (!byCategory[item.category]) byCategory[item.category] = [];
+      byCategory[item.category].push(item);
+    });
+
+    // Наполняем каждую панель
+    Object.entries(byCategory).forEach(([cat, catItems]) => {
+      const panel = document.getElementById('panel-' + cat);
+      if (!panel) return;
+      const grid = panel.querySelector('.menu-grid');
+      if (!grid) return;
+
+      grid.innerHTML = catItems.map((item, i) => {
+        const num = cat === 'bakery' ? `Б-${String(i + 1).padStart(2, '0')}` : String(i + 1).padStart(2, '0');
+        const vol = item.vol > 0 ? `<span>/ ${item.vol} мл</span>` : '';
+        return `
+          <div class="menu-item">
+            <p class="item-number">${num}</p>
+            <h3 class="item-name">${item.name}</h3>
+            <div class="item-price">${item.price} ₽${vol}</div>
+          </div>`;
+      }).join('');
+    });
+
+    // Переинициализируем курсор для новых элементов
+    initCursorTargets();
+
+  } catch (err) {
+    console.warn('Меню из БД не загрузилось, показываем статику:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadMenu);
 
 /* ── BURGER MENU ── */
 function toggleMenu() {
@@ -38,27 +83,63 @@ function switchAuthTab(tab, el) {
   document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
 }
 
-function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value.trim();
-  if (!email || !pass) { alert('Введите email и пароль'); return; }
-  loginUser({ name: capitalize(email.split('@')[0]), email });
-  closeAuth();
+async function doLogin() {
+  const username = document.getElementById('loginEmail').value.trim();
+  const pass     = document.getElementById('loginPass').value.trim();
+  if (!username || !pass) { alert('Введите логин и пароль'); return; }
+
+  try {
+    const res = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass }),
+    });
+
+    if (res.status === 401) { alert('Неверный логин или пароль'); return; }
+    if (!res.ok) { alert('Ошибка сервера'); return; }
+
+    const data = await res.json();
+    localStorage.setItem('token', data.token);
+    loginUser({ name: capitalize(username) });
+    closeAuth();
+  } catch (err) {
+    alert('Не удалось подключиться к серверу');
+  }
 }
 
-function doRegister() {
-  const name  = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass  = document.getElementById('regPass').value.trim();
-  if (!name || !email || !pass) { alert('Заполните все поля'); return; }
-  if (pass.length < 6) { alert('Пароль минимум 6 символов'); return; }
-  loginUser({ name, email });
-  closeAuth();
+async function doRegister() {
+  const username = document.getElementById('regName').value.trim();
+  const pass     = document.getElementById('regPass').value.trim();
+  if (!username || !pass) { alert('Заполните все поля'); return; }
+  if (pass.length < 6)    { alert('Пароль минимум 6 символов'); return; }
+
+  try {
+    const res = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass }),
+    });
+
+    if (res.status === 409) { alert('Логин уже занят'); return; }
+    if (!res.ok) { alert('Ошибка регистрации'); return; }
+
+    // После регистрации сразу логиним
+    const loginRes = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass }),
+    });
+    const data = await loginRes.json();
+    localStorage.setItem('token', data.token);
+    loginUser({ name: capitalize(username) });
+    closeAuth();
+  } catch (err) {
+    alert('Не удалось подключиться к серверу');
+  }
 }
 
 function doGoogleLogin() {
-  loginUser({ name: 'Алексей Иванов', email: 'alex@gmail.com' });
-  closeAuth();
+  alert('Скоро появится');
 }
 
 function capitalize(s) {
@@ -72,12 +153,12 @@ function loginUser(user) {
   document.getElementById('mobAuthBtn').style.display = 'none';
   document.getElementById('mobProfileBtn').style.display = 'block';
   document.getElementById('profileName').textContent = user.name;
-  document.getElementById('profileEmail').textContent = user.email;
   document.getElementById('profileAvatar').textContent = user.name.charAt(0).toUpperCase();
 }
 
 function doLogout() {
   currentUser = null;
+  localStorage.removeItem('token');
   closeProfile();
   document.getElementById('btnNavAuth').style.display = '';
   document.getElementById('btnNavProfile').style.display = 'none';
@@ -127,18 +208,21 @@ document.addEventListener('mousemove', e => {
 })();
 
 // Expand ring on interactive elements
-document.querySelectorAll('a, button, .menu-item, .delivery-card').forEach(el => {
-  el.addEventListener('mouseenter', () => {
-    ring.style.width  = '50px';
-    ring.style.height = '50px';
-    ring.style.borderColor = 'rgba(201,169,110,.7)';
+function initCursorTargets() {
+  document.querySelectorAll('a, button, .menu-item, .delivery-card').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      ring.style.width  = '50px';
+      ring.style.height = '50px';
+      ring.style.borderColor = 'rgba(201,169,110,.7)';
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.style.width  = '32px';
+      ring.style.height = '32px';
+      ring.style.borderColor = 'rgba(201,169,110,.4)';
+    });
   });
-  el.addEventListener('mouseleave', () => {
-    ring.style.width  = '32px';
-    ring.style.height = '32px';
-    ring.style.borderColor = 'rgba(201,169,110,.4)';
-  });
-});
+}
+initCursorTargets();
 
 // Dark cursor on gold surfaces
 function setCursorDark() {
