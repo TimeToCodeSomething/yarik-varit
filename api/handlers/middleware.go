@@ -38,7 +38,7 @@ func AuthMiddleware(allowedRoles []models.Role, next http.HandlerFunc) http.Hand
 
 		// Парсим и валидируем токен
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return jwtSecret(), nil
 		})
 
 		if err != nil || !token.Valid {
