@@ -12,15 +12,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func getJWTSecret() []byte {
+func jwtSecret() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		panic("Переменная JWT_SECRET не задана")
 	}
 	return []byte(secret)
 }
-
-var jwtSecret = getJWTSecret()
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -60,7 +58,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		"exp":     time.Now().Add(time.Hour * 72).Unix(), // Токен живет 3 дня
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(jwtSecret())
 	if err != nil {
 		http.Error(w, "Ошибка генерации токена", http.StatusInternalServerError)
 		return
